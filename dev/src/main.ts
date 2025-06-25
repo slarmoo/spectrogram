@@ -9,16 +9,23 @@ const updateSpeed: number = 50;
 
 const fileInput: HTMLInputElement = document.getElementById("fileInput") as HTMLInputElement;
 const playButton: HTMLButtonElement = document.getElementById("playButton") as HTMLButtonElement;
+const bufferSizeInput: HTMLInputElement = document.getElementById("bufferSizeInput") as HTMLInputElement;
 const graphContainer: HTMLDivElement = document.getElementById("graphs") as HTMLDivElement;
 
 graphContainer.appendChild(oscilloscope.container);
 graphContainer.appendChild(spectrogram.container);
 
+bufferSizeInput.addEventListener("change", () => {
+    const size: number = Math.pow(2, parseInt(bufferSizeInput.value));
+    bufferSizeInput.title = size + "";
+    synth.setBufferSize(size);
+})
+
 fileInput.addEventListener("change", async () => {
     if (fileInput.files == null) return;
     for (const file of fileInput.files) {
         const data: ArrayBuffer = await file.arrayBuffer();
-        await synth.initializeFileData(data);
+        await synth.initializeFileData(data, Math.pow(2, parseInt(bufferSizeInput.value)));
         playButton.innerHTML = synth.isPlaying ? "pause" : "play";
         break; // Only one file is supported.
     }

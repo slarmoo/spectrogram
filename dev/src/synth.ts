@@ -1,6 +1,6 @@
 export class Synth {
     // private sampleRate: number = 44100;
-    private bufferSize: number = 1024;
+    private bufferSize: number = Math.pow(2,12);
     public isPlaying: boolean = false;
 
     private audioContext: AudioContext | null = null;
@@ -13,7 +13,12 @@ export class Synth {
 
     private audioFileIndex: number = 0;
 
-    public async initializeFileData(data: ArrayBuffer) {
+    public setBufferSize(bufferSize: number) { //only takes affect after a pause
+        this.bufferSize = bufferSize;
+    }
+
+    public async initializeFileData(data: ArrayBuffer, bufferSize: number) {
+        this.bufferSize = bufferSize;
         this.activate();
         const buffer: AudioBuffer = await this.audioContext!.decodeAudioData(data);
         this.audioFileL = buffer.getChannelData(0);
