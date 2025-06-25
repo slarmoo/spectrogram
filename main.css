@@ -1,4 +1,18 @@
 body {
     color: white;
-    background-color: black;
+    background-color: rgb(0, 15, 11);
+    padding: 4px;
+}
+
+body > * {
+    margin: 5px;
+}
+
+#graphs {
+    display: flex;
+    flex-direction: row;
+}
+
+#graphs > * {
+    margin-right: 5px;
 }

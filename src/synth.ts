@@ -8,6 +8,8 @@ export class Synth {
     public audioFileL: Float32Array | null = null;
     public audioFileR: Float32Array | null = null;
 
+    public displayOutput: Float32Array | null = null;
+
     private audioFileIndex: number = 0;
 
     public async initializeFileData(data: ArrayBuffer) {
@@ -63,6 +65,7 @@ export class Synth {
             if (this.audioFileIndex >= this.audioFileL.length) {
                 this.audioFileIndex %= this.audioFileL.length;
             }
+            this.displayOutput = outputDataL.slice();
         }
     }
 
