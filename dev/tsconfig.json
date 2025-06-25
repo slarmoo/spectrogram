@@ -25,5 +25,5 @@
   },
   "include": [
     "src"
-  ]
+, "dev/src/spectrogram.ts", "dev/src/imperative-html", "dev/src/fft.ts", "dev/src/main.ts", "dev/src/synth.ts"  ]
 }
