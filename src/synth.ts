@@ -1,5 +1,6 @@
 export class Synth {
     // private sampleRate: number = 44100;
+    private bufferSize: number = 1024;
     public isPlaying: boolean = false;
 
     private audioContext: AudioContext | null = null;
@@ -31,13 +32,12 @@ export class Synth {
     }
 
     private activate() {
-        const bufferSize: number = 512;
-        if (this.audioContext == null || this.scriptNode == null || this.scriptNode.bufferSize != bufferSize) {
+        if (this.audioContext == null || this.scriptNode == null || this.scriptNode.bufferSize != this.bufferSize) {
             if (this.scriptNode != null) this.deactivate();
             const latencyHint: AudioContextLatencyCategory = "balanced";
             this.audioContext = this.audioContext || new AudioContext({ latencyHint: latencyHint });
             // this.sampleRate = this.audioContext.sampleRate;
-            this.scriptNode = this.audioContext.createScriptProcessor(bufferSize, 0, 2);
+            this.scriptNode = this.audioContext.createScriptProcessor(this.bufferSize, 0, 2);
             this.scriptNode.onaudioprocess = this.audioProcessCallback;
             this.scriptNode.channelCountMode = "explicit";
             this.scriptNode.channelInterpretation = "speakers";

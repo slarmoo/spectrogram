@@ -1,13 +1,13 @@
 import { HTML, SVG } from "./imperative-html/elements-strict";
 import type { Synth } from "./synth";
-
+import { forwardRealFourierTransform } from "./fft";
 
 export class Spectrogram {
     private readonly _editorWidth: number = 720;
     private readonly _editorHeight: number = 400;
     private readonly _curve: SVGPathElement = SVG.path({ fill: "none", stroke: "rgb(255, 255, 255)", "stroke-width": 2, "pointer-events": "none" });
 
-    private readonly _svg: SVGSVGElement = SVG.svg({ style: `background-color:rgb(9, 48, 28); touch-action: none; cursor: crosshair;`, width: "100%", height: "100%", viewBox: "0 0 " + this._editorWidth + " " + this._editorHeight, preserveAspectRatio: "none" },
+    private readonly _svg: SVGSVGElement = SVG.svg({ style: `background-color:#09301cc0; touch-action: none; cursor: crosshair;`, width: "100%", height: "100%", viewBox: "0 0 " + this._editorWidth + " " + this._editorHeight, preserveAspectRatio: "none" },
         this._curve
     )
 
@@ -25,8 +25,15 @@ export class Spectrogram {
         this.render();
     }
 
-    public generateSpectrum() {
-        this.spectrum = this.synth.displayOutput; //placeholder
+    public generateSpectrum() { //TODO: logarithmic scale
+        if (this.synth.displayOutput) {
+            const hold: Float32Array = this.synth.displayOutput.slice();
+            forwardRealFourierTransform(hold);
+            this.spectrum = new Float32Array(hold.length >> 1);
+            for (let i: number = 0; i < hold.length >> 1; i++) {
+                this.spectrum[i] = 0.3 - Math.abs(hold[i]);
+            }
+        }
         this.render();
     }
 

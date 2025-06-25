@@ -5,7 +5,7 @@ const synth: Synth = new Synth();
 const spectrogram: Spectrogram = new Spectrogram(synth);
 const oscilloscope: Spectrogram = new Spectrogram(synth);
 
-const updateSpeed: number = 300;
+const updateSpeed: number = 50;
 
 const fileInput: HTMLInputElement = document.getElementById("fileInput") as HTMLInputElement;
 const playButton: HTMLButtonElement = document.getElementById("playButton") as HTMLButtonElement;
@@ -25,11 +25,22 @@ fileInput.addEventListener("change", async () => {
 });
 
 playButton.addEventListener("click", () => {
+    togglePause();
+});
+
+document.addEventListener("keypress", (event) => {
+    if (event.key == " ") {
+        togglePause();
+        event.preventDefault();
+    }
+})
+
+function togglePause() {
     synth.togglePause();
     playButton.innerHTML = synth.isPlaying ? "pause" : "play";
-});
+}
 
 setInterval(() => {
     oscilloscope.generateWave();
-    spectrogram.generateSpectrum()
-}, updateSpeed)
+    spectrogram.generateSpectrum();
+}, updateSpeed);
