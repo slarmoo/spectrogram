@@ -114,7 +114,6 @@ export class Synth {
             this.workletNode.connect(this.audioContext.destination);
             this.workletNode.port.onmessage = (event) => {
                 if (event.data.type == 'render') {
-                    console.log(this.displayOutput, this.displayOutput?.length(), this.bufferSize)
                     if (this.displayOutput != null && this.displayOutput.length() < this.bufferSize) {
                         this.displayOutput.concat(event.data.displayOutput);
                     } else {

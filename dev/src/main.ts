@@ -46,6 +46,12 @@ function togglePause() {
     playButton.innerHTML = synth.isPlaying ? "pause" : "play";
 }
 
+// const updateSpeed: number = 50
+// setInterval(() => {
+//     oscilloscope.generateWave();
+//     spectrogram.generateSpectrum();
+// }, updateSpeed);
+
 render();
 
 function render() {

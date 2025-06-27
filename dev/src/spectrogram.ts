@@ -33,7 +33,6 @@ export class Spectrogram {
     public generateSpectrum() { //TODO: fix logarithmic scale
         if (this.synth.displayOutput && (this.synth.displayOutput.length() == this.synth.bufferSize)) {
             const hold: Float32Array = this.synth.displayOutput.getBuffer();
-            console.log("length: ", hold.length, this.synth.displayOutput.length());
             forwardRealFourierTransform(hold);
             this.spectrum = new Float32Array(hold.length >> 1);
             for (let i: number = 0; i < hold.length >> 1; i++) {

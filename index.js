@@ -35,6 +35,57 @@
     fetch(link.href, fetchOpts);
   }
 })();
+class ResizeableBuffer {
+  constructor(initialArray, initialSize) {
+    this.size = 0;
+    if (initialArray) {
+      this.buffer = initialArray;
+      this.size = this.buffer.length;
+    } else if (initialSize) {
+      this.buffer = new Float32Array(initialSize);
+      this.size = initialSize;
+    } else {
+      this.buffer = new Float32Array(4);
+    }
+  }
+  length() {
+    return this.size;
+  }
+  at(index) {
+    return this.buffer[index];
+  }
+  getBuffer() {
+    return this.buffer.slice();
+  }
+  append(value) {
+    if (this.buffer.length >= this.size) this.resize();
+    this.buffer[this.size + 1] = value;
+    this.size++;
+  }
+  pop() {
+    this.size--;
+    return this.buffer[this.size];
+  }
+  set(value, index) {
+    this.buffer[index] = value;
+  }
+  concat(addArray) {
+    if (this.buffer.length + addArray.length > this.size) {
+      this.resize(addArray.length);
+    }
+    for (let i = 0; i < addArray.length; i++) {
+      this.buffer[i + this.size] = addArray[i];
+    }
+    this.size += addArray.length;
+  }
+  resize(by) {
+    const newBuffer = new Float32Array(by ? this.buffer.length + by : this.buffer.length * 2);
+    for (let i = 0; i < this.buffer.length; i++) {
+      newBuffer[i] = this.buffer[i];
+    }
+    this.buffer = newBuffer;
+  }
+}
 class Synth {
   constructor() {
     this.isPlaying = false;
@@ -42,6 +93,7 @@ class Synth {
     this.audioContext = null;
     this.workletNode = null;
     this.displayOutput = null;
+    this.bufferSize = Math.pow(2, 11);
   }
   async initializeFileData(data) {
     await this.activate();
@@ -131,20 +183,16 @@ class Synth {
       this.workletNode.connect(this.audioContext.destination);
       this.workletNode.port.onmessage = (event) => {
         if (event.data.type == "render") {
-          this.displayOutput = event.data.displayOutput;
+          if (this.displayOutput != null && this.displayOutput.length() < this.bufferSize) {
+            this.displayOutput.concat(event.data.displayOutput);
+          } else {
+            this.displayOutput = new ResizeableBuffer(event.data.displayOutput);
+          }
         }
       };
     }
     await this.audioContext.resume();
   }
-  // private deactivate(): void {
-  //     if (this.audioContext != null && this.workletNode != null) {
-  //         this.workletNode.disconnect(this.audioContext.destination);
-  //         this.workletNode = null;
-  //         this.audioContext.close();
-  //         this.audioContext = null;
-  //     }
-  // }
 }
 function applyElementArgs(element, args) {
   for (const arg of args) {
@@ -348,12 +396,14 @@ class Spectrogram {
     this.synth = synth2;
   }
   generateWave() {
-    this.spectrum = this.synth.displayOutput;
-    this.renderWave();
+    if (this.synth.displayOutput && this.synth.displayOutput.length() >= this.synth.bufferSize) {
+      this.spectrum = this.synth.displayOutput.getBuffer();
+      this.renderWave();
+    }
   }
   generateSpectrum() {
-    if (this.synth.displayOutput) {
-      const hold = this.synth.displayOutput.slice();
+    if (this.synth.displayOutput && this.synth.displayOutput.length() == this.synth.bufferSize) {
+      const hold = this.synth.displayOutput.getBuffer();
       forwardRealFourierTransform(hold);
       this.spectrum = new Float32Array(hold.length >> 1);
       for (let i = 0; i < hold.length >> 1; i++) {
@@ -393,12 +443,17 @@ function prettyNumber(value) {
 const synth = new Synth();
 const spectrogram = new Spectrogram(synth);
 const oscilloscope = new Spectrogram(synth);
-const updateSpeed = 50;
 const fileInput = document.getElementById("fileInput");
 const playButton = document.getElementById("playButton");
+const bufferSizeInput = document.getElementById("bufferSizeInput");
 const graphContainer = document.getElementById("graphs");
 graphContainer.appendChild(oscilloscope.container);
 graphContainer.appendChild(spectrogram.container);
+bufferSizeInput.addEventListener("change", () => {
+  const size = Math.pow(2, parseInt(bufferSizeInput.value));
+  bufferSizeInput.title = size + "";
+  synth.bufferSize = size;
+});
 fileInput.addEventListener("change", async () => {
   if (fileInput.files == null) return;
   for (const file of fileInput.files) {
@@ -422,7 +477,11 @@ function togglePause() {
   synth.togglePause();
   playButton.innerHTML = synth.isPlaying ? "pause" : "play";
 }
-setInterval(() => {
-  oscilloscope.generateWave();
-  spectrogram.generateSpectrum();
-}, updateSpeed);
+render();
+function render() {
+  requestAnimationFrame(() => {
+    oscilloscope.generateWave();
+    spectrogram.generateSpectrum();
+    render();
+  });
+}
