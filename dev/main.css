@@ -6,6 +6,19 @@ body {
     font-size: 15px;
 }
 
+a:link {
+    color: rgb(92, 203, 174)
+}
+a:visited {
+    color: rgb(61, 133, 114)
+}
+a:hover {
+    color: rgb(132, 226, 201)
+}
+a:active {
+    color: rgb(212, 247, 237)
+}
+
 body > * {
     margin: 5px;
 }

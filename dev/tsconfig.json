@@ -1,10 +1,10 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "useDefineForClassFields": true,
-    "module": "ESNext",
+    "target": "ES2022",
+    "useDefineForClassFields": false,
+    "module": "esnext",
     "lib": [
-      "ES2020",
+      "ES2022",
       "DOM",
       "DOM.Iterable"
     ],
@@ -24,6 +24,5 @@
     "noUncheckedSideEffectImports": true
   },
   "include": [
-    "src"
-, "dev/src/spectrogram.ts", "dev/src/imperative-html", "dev/src/fft.ts", "dev/src/main.ts", "dev/src/synth.ts"  ]
+    "src"  ]
 }

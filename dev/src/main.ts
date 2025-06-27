@@ -1,4 +1,4 @@
-import { Synth } from "./synth";
+import { Synth } from "./synth.ts";
 import { Spectrogram } from "./spectrogram";
 
 const synth: Synth = new Synth();
@@ -9,26 +9,27 @@ const updateSpeed: number = 50;
 
 const fileInput: HTMLInputElement = document.getElementById("fileInput") as HTMLInputElement;
 const playButton: HTMLButtonElement = document.getElementById("playButton") as HTMLButtonElement;
-const bufferSizeInput: HTMLInputElement = document.getElementById("bufferSizeInput") as HTMLInputElement;
+// const bufferSizeInput: HTMLInputElement = document.getElementById("bufferSizeInput") as HTMLInputElement;
 const graphContainer: HTMLDivElement = document.getElementById("graphs") as HTMLDivElement;
 
 graphContainer.appendChild(oscilloscope.container);
 graphContainer.appendChild(spectrogram.container);
 
-bufferSizeInput.addEventListener("change", () => {
-    const size: number = Math.pow(2, parseInt(bufferSizeInput.value));
-    bufferSizeInput.title = size + "";
-    synth.setBufferSize(size);
-})
+// bufferSizeInput.addEventListener("change", () => {
+//     const size: number = Math.pow(2, parseInt(bufferSizeInput.value));
+//     bufferSizeInput.title = size + "";
+//     synth.setBufferSize(size);
+// })
 
 fileInput.addEventListener("change", async () => {
     if (fileInput.files == null) return;
     for (const file of fileInput.files) {
         const data: ArrayBuffer = await file.arrayBuffer();
-        await synth.initializeFileData(data, Math.pow(2, parseInt(bufferSizeInput.value)));
+        await synth.initializeFileData(data);
         playButton.innerHTML = synth.isPlaying ? "pause" : "play";
         break; // Only one file is supported.
     }
+    fileInput.blur()
 });
 
 playButton.addEventListener("click", () => {
