@@ -24,13 +24,16 @@ export class Spectrogram {
     }
 
     public generateWave() {
-        this.spectrum = this.synth.displayOutput;
-        this.renderWave();
+        if (this.synth.displayOutput && this.synth.displayOutput.length() >= this.synth.bufferSize) {
+            this.spectrum = this.synth.displayOutput.getBuffer();
+            this.renderWave();
+        }
     }
 
-    public generateSpectrum() { //TODO: logarithmic scale
-        if (this.synth.displayOutput) {
-            const hold: Float32Array = this.synth.displayOutput.slice();
+    public generateSpectrum() { //TODO: fix logarithmic scale
+        if (this.synth.displayOutput && (this.synth.displayOutput.length() == this.synth.bufferSize)) {
+            const hold: Float32Array = this.synth.displayOutput.getBuffer();
+            console.log("length: ", hold.length, this.synth.displayOutput.length());
             forwardRealFourierTransform(hold);
             this.spectrum = new Float32Array(hold.length >> 1);
             for (let i: number = 0; i < hold.length >> 1; i++) {

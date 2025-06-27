@@ -1,3 +1,5 @@
+import { ResizeableBuffer } from "./resizableBuffer";
+
 export class Synth {
     public isPlaying: boolean = false;
     private initialized: boolean = false;
@@ -5,7 +7,9 @@ export class Synth {
     private audioContext: AudioContext | null = null;
     private workletNode: AudioWorkletNode | null = null;
 
-    public displayOutput: Float32Array | null = null;
+    //visuals
+    public displayOutput: ResizeableBuffer | null = null;
+    public bufferSize: number = Math.pow(2, 11);
 
     public async initializeFileData(data: ArrayBuffer) {
         await this.activate();
@@ -43,8 +47,8 @@ export class Synth {
         if (this.audioContext == null || this.workletNode == null) {
             const latencyHint: AudioContextLatencyCategory = "balanced";
             this.audioContext = this.audioContext || new AudioContext({ latencyHint: latencyHint });
-            // this.sampleRate = this.audioContext.sampleRate;
 
+            //a kind of hacky way to get the audioworklet to work with typescript + vite
             const url_worklet = URL.createObjectURL(new Blob(['(', function () {
 
                 class WorkletProcessor extends AudioWorkletProcessor {
@@ -67,10 +71,10 @@ export class Synth {
                         };
                     }
                     process(_: Float32Array[][], outputs: Float32Array[][]) {
-                        const outputDataL = outputs[0][0];
-                        const outputDataR = outputs[0][1];
+                        const outputDataL: Float32Array = outputs[0][0];
+                        const outputDataR: Float32Array = outputs[0][1];
                         if (this.isPlaying && this.audioFileL && this.audioFileR) {
-                            for (let i = 0; i < outputDataL.length; i++) {
+                            for (let i: number = 0; i < outputDataL.length; i++) {
                                 outputDataL[i] = this.audioFileL[this.audioFileIndex + i];
                                 outputDataR[i] = this.audioFileR[this.audioFileIndex + i];
                             }
@@ -79,7 +83,7 @@ export class Synth {
                                 this.audioFileIndex %= this.audioFileL.length;
                             }
                         } else if (this.isPlaying && this.audioFileL) { //mono
-                            for (let i = 0; i < outputDataL.length; i++) {
+                            for (let i: number = 0; i < outputDataL.length; i++) {
                                 outputDataL[i] = this.audioFileL[this.audioFileIndex + i];
                                 outputDataR[i] = this.audioFileL[this.audioFileIndex + i];
                             }
@@ -110,20 +114,17 @@ export class Synth {
             this.workletNode.connect(this.audioContext.destination);
             this.workletNode.port.onmessage = (event) => {
                 if (event.data.type == 'render') {
-                    this.displayOutput = event.data.displayOutput;
+                    console.log(this.displayOutput, this.displayOutput?.length(), this.bufferSize)
+                    if (this.displayOutput != null && this.displayOutput.length() < this.bufferSize) {
+                        this.displayOutput.concat(event.data.displayOutput);
+                    } else {
+                        this.displayOutput = new ResizeableBuffer(event.data.displayOutput);
+                    }
+                    
                 }
             }
         }
         await this.audioContext.resume();
     }
-
-    // private deactivate(): void {
-    //     if (this.audioContext != null && this.workletNode != null) {
-    //         this.workletNode.disconnect(this.audioContext.destination);
-    //         this.workletNode = null;
-    //         this.audioContext.close();
-    //         this.audioContext = null;
-    //     }
-    // }
 
 }

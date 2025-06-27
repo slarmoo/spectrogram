@@ -5,21 +5,19 @@ const synth: Synth = new Synth();
 const spectrogram: Spectrogram = new Spectrogram(synth);
 const oscilloscope: Spectrogram = new Spectrogram(synth);
 
-const updateSpeed: number = 50;
-
 const fileInput: HTMLInputElement = document.getElementById("fileInput") as HTMLInputElement;
 const playButton: HTMLButtonElement = document.getElementById("playButton") as HTMLButtonElement;
-// const bufferSizeInput: HTMLInputElement = document.getElementById("bufferSizeInput") as HTMLInputElement;
+const bufferSizeInput: HTMLInputElement = document.getElementById("bufferSizeInput") as HTMLInputElement;
 const graphContainer: HTMLDivElement = document.getElementById("graphs") as HTMLDivElement;
 
 graphContainer.appendChild(oscilloscope.container);
 graphContainer.appendChild(spectrogram.container);
 
-// bufferSizeInput.addEventListener("change", () => {
-//     const size: number = Math.pow(2, parseInt(bufferSizeInput.value));
-//     bufferSizeInput.title = size + "";
-//     synth.setBufferSize(size);
-// })
+bufferSizeInput.addEventListener("change", () => {
+    const size: number = Math.pow(2, parseInt(bufferSizeInput.value));
+    bufferSizeInput.title = size + "";
+    synth.bufferSize = size;
+})
 
 fileInput.addEventListener("change", async () => {
     if (fileInput.files == null) return;
@@ -48,7 +46,12 @@ function togglePause() {
     playButton.innerHTML = synth.isPlaying ? "pause" : "play";
 }
 
-setInterval(() => {
-    oscilloscope.generateWave();
-    spectrogram.generateSpectrum();
-}, updateSpeed);
+render();
+
+function render() {
+    requestAnimationFrame(() => {
+        oscilloscope.generateWave();
+        spectrogram.generateSpectrum();
+        render();
+    })
+}
