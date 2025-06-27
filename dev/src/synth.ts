@@ -8,8 +8,9 @@ export class Synth {
     private workletNode: AudioWorkletNode | null = null;
 
     //visuals
-    public displayOutput: ResizeableBuffer | null = null;
+    private displayOutput: ResizeableBuffer | null = null;
     public bufferSize: number = Math.pow(2, 11);
+    public display: Float32Array | null = null;
 
     public async initializeFileData(data: ArrayBuffer) {
         await this.activate();
@@ -64,6 +65,7 @@ export class Synth {
                             if (event.data.type == 'initialize') {
                                 this.audioFileL = event.data.audioFileL;
                                 this.audioFileR = event.data.audioFileR;
+                                this.audioFileIndex = 0;
                             }
                             if (event.data.type == 'play') {
                                 this.isPlaying = event.data.isPlaying;
@@ -114,12 +116,17 @@ export class Synth {
             this.workletNode.connect(this.audioContext.destination);
             this.workletNode.port.onmessage = (event) => {
                 if (event.data.type == 'render') {
-                    if (this.displayOutput != null && this.displayOutput.length() < this.bufferSize) {
+                    if (this.displayOutput == null) { 
+                        this.displayOutput = new ResizeableBuffer(undefined, this.bufferSize);
+                    } else if (this.displayOutput != null && this.displayOutput.length() < this.bufferSize) {
                         this.displayOutput.concat(event.data.displayOutput);
                     } else {
-                        this.displayOutput = new ResizeableBuffer(event.data.displayOutput);
+                        this.displayOutput.clear();
+                        this.displayOutput.concat(event.data.displayOutput);
                     }
-                    
+                    if (this.displayOutput.length() == this.bufferSize) {
+                        this.display = this.displayOutput.getBuffer();
+                    }
                 }
             }
         }

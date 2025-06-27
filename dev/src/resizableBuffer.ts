@@ -19,16 +19,20 @@ export class ResizeableBuffer {
         return this.size;
     }
 
+    public clear() {
+        this.size = 0;
+    }
+
     public at(index: number): number {
         return this.buffer[index];
     }
 
     public getBuffer(): Float32Array {
-        return this.buffer.slice();
+        return this.buffer.slice(0, this.size);
     }
 
     public append(value: number) {
-        if (this.buffer.length >= this.size) this.resize();
+        if (this.size >= this.buffer.length) this.resize();
 
         this.buffer[this.size + 1] = value;
         this.size++;
@@ -44,7 +48,7 @@ export class ResizeableBuffer {
     }
 
     public concat(addArray: Float32Array) {
-        if (this.buffer.length + addArray.length > this.size) {
+        if (this.size + addArray.length > this.buffer.length) {
             this.resize(addArray.length);
         }
         for (let i = 0; i < addArray.length; i++) {

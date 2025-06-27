@@ -51,14 +51,17 @@ class ResizeableBuffer {
   length() {
     return this.size;
   }
+  clear() {
+    this.size = 0;
+  }
   at(index) {
     return this.buffer[index];
   }
   getBuffer() {
-    return this.buffer.slice();
+    return this.buffer.slice(0, this.size);
   }
   append(value) {
-    if (this.buffer.length >= this.size) this.resize();
+    if (this.size >= this.buffer.length) this.resize();
     this.buffer[this.size + 1] = value;
     this.size++;
   }
@@ -70,7 +73,7 @@ class ResizeableBuffer {
     this.buffer[index] = value;
   }
   concat(addArray) {
-    if (this.buffer.length + addArray.length > this.size) {
+    if (this.size + addArray.length > this.buffer.length) {
       this.resize(addArray.length);
     }
     for (let i = 0; i < addArray.length; i++) {
@@ -94,6 +97,7 @@ class Synth {
     this.workletNode = null;
     this.displayOutput = null;
     this.bufferSize = Math.pow(2, 11);
+    this.display = null;
   }
   async initializeFileData(data) {
     await this.activate();
@@ -138,6 +142,7 @@ class Synth {
               if (event.data.type == "initialize") {
                 this.audioFileL = event.data.audioFileL;
                 this.audioFileR = event.data.audioFileR;
+                this.audioFileIndex = 0;
               }
               if (event.data.type == "play") {
                 this.isPlaying = event.data.isPlaying;
@@ -183,10 +188,16 @@ class Synth {
       this.workletNode.connect(this.audioContext.destination);
       this.workletNode.port.onmessage = (event) => {
         if (event.data.type == "render") {
-          if (this.displayOutput != null && this.displayOutput.length() < this.bufferSize) {
+          if (this.displayOutput == null) {
+            this.displayOutput = new ResizeableBuffer(void 0, this.bufferSize);
+          } else if (this.displayOutput != null && this.displayOutput.length() < this.bufferSize) {
             this.displayOutput.concat(event.data.displayOutput);
           } else {
-            this.displayOutput = new ResizeableBuffer(event.data.displayOutput);
+            this.displayOutput.clear();
+            this.displayOutput.concat(event.data.displayOutput);
+          }
+          if (this.displayOutput.length() == this.bufferSize) {
+            this.display = this.displayOutput.getBuffer();
           }
         }
       };
@@ -387,7 +398,7 @@ class Spectrogram {
     this._curve = SVG.path({ fill: "none", stroke: "rgb(255, 255, 255)", "stroke-width": 2, "pointer-events": "none" });
     this._text = SVG.text({ x: "20", y: this._editorHeight - 20, fill: "white" }, "");
     this._svg = SVG.svg(
-      { style: `background-color:#09301cc0; touch-action: none; cursor: crosshair;`, width: "100%", height: "100%", viewBox: "0 0 " + this._editorWidth + " " + this._editorHeight, preserveAspectRatio: "none" },
+      { style: `background-color:#072818; touch-action: none; cursor: crosshair;`, width: "100%", height: "100%", viewBox: "0 0 " + this._editorWidth + " " + this._editorHeight, preserveAspectRatio: "none" },
       this._curve,
       this._text
     );
@@ -396,14 +407,14 @@ class Spectrogram {
     this.synth = synth2;
   }
   generateWave() {
-    if (this.synth.displayOutput && this.synth.displayOutput.length() >= this.synth.bufferSize) {
-      this.spectrum = this.synth.displayOutput.getBuffer();
+    if (this.synth.display) {
+      this.spectrum = this.synth.display;
       this.renderWave();
     }
   }
   generateSpectrum() {
-    if (this.synth.displayOutput && this.synth.displayOutput.length() == this.synth.bufferSize) {
-      const hold = this.synth.displayOutput.getBuffer();
+    if (this.synth.display) {
+      const hold = this.synth.display.slice();
       forwardRealFourierTransform(hold);
       this.spectrum = new Float32Array(hold.length >> 1);
       for (let i = 0; i < hold.length >> 1; i++) {

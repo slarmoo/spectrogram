@@ -8,7 +8,7 @@ export class Spectrogram {
     private readonly _curve: SVGPathElement = SVG.path({ fill: "none", stroke: "rgb(255, 255, 255)", "stroke-width": 2, "pointer-events": "none" });
     private readonly _text: SVGTextElement = SVG.text({x: "20", y: this._editorHeight - 20, fill: "white"}, "");
 
-    private readonly _svg: SVGSVGElement = SVG.svg({ style: `background-color:#09301cc0; touch-action: none; cursor: crosshair;`, width: "100%", height: "100%", viewBox: "0 0 " + this._editorWidth + " " + this._editorHeight, preserveAspectRatio: "none" },
+    private readonly _svg: SVGSVGElement = SVG.svg({ style: `background-color:#072818; touch-action: none; cursor: crosshair;`, width: "100%", height: "100%", viewBox: "0 0 " + this._editorWidth + " " + this._editorHeight, preserveAspectRatio: "none" },
         this._curve,
         this._text
     )
@@ -24,15 +24,15 @@ export class Spectrogram {
     }
 
     public generateWave() {
-        if (this.synth.displayOutput && this.synth.displayOutput.length() >= this.synth.bufferSize) {
-            this.spectrum = this.synth.displayOutput.getBuffer();
+        if (this.synth.display) {
+            this.spectrum = this.synth.display;
             this.renderWave();
         }
     }
 
     public generateSpectrum() { //TODO: fix logarithmic scale
-        if (this.synth.displayOutput && (this.synth.displayOutput.length() == this.synth.bufferSize)) {
-            const hold: Float32Array = this.synth.displayOutput.getBuffer();
+        if (this.synth.display) {
+            const hold: Float32Array = this.synth.display.slice();
             forwardRealFourierTransform(hold);
             this.spectrum = new Float32Array(hold.length >> 1);
             for (let i: number = 0; i < hold.length >> 1; i++) {
