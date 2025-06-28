@@ -65,7 +65,11 @@ export class Spectrogram {
         if (!this.synth.isPlaying || this.spectrum == null) return;
         let path: string = "M 0 " + prettyNumber(this.spectrum[0] * this._editorHeight + this._editorHeight / 2) + " ";
         for (let index: number = 1; index < this.spectrum.length; index++) {
-            path += "L " + prettyNumber(Math.log2(index / this.spectrum.length + 1) * this._editorWidth) + " " + prettyNumber(this.spectrum[index] * this._editorHeight + this._editorHeight / 2);
+            // const x: number = (Math.pow(2, index / this.spectrum.length) - 1);
+            // const x: number = (Math.log2(index / this.spectrum.length + 1));
+            const x: number = (Math.log10(index * 9 / this.spectrum.length + 1));
+            // const x: number = index / this.spectrum.length;
+            path += "L " + prettyNumber(x * this._editorWidth) + " " + prettyNumber(this.spectrum[index] * this._editorHeight + this._editorHeight / 2);
         }
         this._curve.setAttribute("d", path);
         // if (isFinite(this._mouseX) && isFinite(this._mouseY)) {

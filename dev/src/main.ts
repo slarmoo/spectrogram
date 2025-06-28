@@ -32,6 +32,7 @@ fileInput.addEventListener("change", async () => {
 
 playButton.addEventListener("click", () => {
     togglePause();
+    playButton.blur();
 });
 
 document.addEventListener("keypress", (event) => {

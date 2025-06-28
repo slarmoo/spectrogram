@@ -25,9 +25,23 @@ body > * {
 
 #graphs {
     display: flex;
-    flex-direction: row;
+    width: 95vw;
 }
 
-#graphs > * {
+#graphs>* {
     margin-right: 5px;
+    margin-bottom: 5px;
+    height: auto !important;
+}
+
+@media (max-width: 710px) {
+    #graphs {
+        flex-direction: column;   
+        width: 100%;
+    }
+    #graphs > * {
+        width: 100% !important; 
+        max-width: 100%;
+        box-sizing: border-box;
+    }
 }

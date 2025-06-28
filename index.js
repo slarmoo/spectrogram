@@ -443,7 +443,8 @@ class Spectrogram {
     if (!this.synth.isPlaying || this.spectrum == null) return;
     let path = "M 0 " + prettyNumber(this.spectrum[0] * this._editorHeight + this._editorHeight / 2) + " ";
     for (let index = 1; index < this.spectrum.length; index++) {
-      path += "L " + prettyNumber(Math.log2(index / this.spectrum.length + 1) * this._editorWidth) + " " + prettyNumber(this.spectrum[index] * this._editorHeight + this._editorHeight / 2);
+      const x = Math.log10(index * 9 / this.spectrum.length + 1);
+      path += "L " + prettyNumber(x * this._editorWidth) + " " + prettyNumber(this.spectrum[index] * this._editorHeight + this._editorHeight / 2);
     }
     this._curve.setAttribute("d", path);
   }
@@ -477,6 +478,7 @@ fileInput.addEventListener("change", async () => {
 });
 playButton.addEventListener("click", () => {
   togglePause();
+  playButton.blur();
 });
 document.addEventListener("keypress", (event) => {
   if (event.key == " ") {
