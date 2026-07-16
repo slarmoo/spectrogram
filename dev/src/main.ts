@@ -2,22 +2,24 @@ import { Synth } from "./synth.ts";
 import { Spectrogram } from "./spectrogram";
 
 const synth: Synth = new Synth();
-const spectrogram: Spectrogram = new Spectrogram(synth);
+const spectrogram: Spectrogram = new Spectrogram(synth, true);
 const oscilloscope: Spectrogram = new Spectrogram(synth);
 
 const fileInput: HTMLInputElement = document.getElementById("fileInput") as HTMLInputElement;
+const linkInput: HTMLInputElement = document.getElementById("fetchurl") as HTMLInputElement;
+const submitButton: HTMLButtonElement = document.getElementById("submit") as HTMLButtonElement;
 const playButton: HTMLButtonElement = document.getElementById("playButton") as HTMLButtonElement;
-const bufferSizeInput: HTMLInputElement = document.getElementById("bufferSizeInput") as HTMLInputElement;
+// const bufferSizeInput: HTMLInputElement = document.getElementById("bufferSizeInput") as HTMLInputElement;
 const graphContainer: HTMLDivElement = document.getElementById("graphs") as HTMLDivElement;
 
 graphContainer.appendChild(oscilloscope.container);
 graphContainer.appendChild(spectrogram.container);
 
-bufferSizeInput.addEventListener("change", () => {
-    const size: number = Math.pow(2, parseInt(bufferSizeInput.value));
-    bufferSizeInput.title = size + "";
-    synth.bufferSize = size;
-})
+// bufferSizeInput.addEventListener("change", () => {
+//     const size: number = Math.pow(2, parseInt(bufferSizeInput.value));
+//     bufferSizeInput.title = size + "";
+//     // synth.bufferSize = size;
+// })
 
 fileInput.addEventListener("change", async () => {
     if (fileInput.files == null) return;
@@ -29,6 +31,11 @@ fileInput.addEventListener("change", async () => {
     }
     fileInput.blur()
 });
+
+submitButton.addEventListener("click", () => {
+    if (!linkInput.value) return;
+    fetch(linkInput.value).then((r) => r.arrayBuffer()).then((data) => synth.initializeFileData(data)).then(() => playButton.innerHTML = synth.isPlaying ? "pause" : "play");
+})
 
 playButton.addEventListener("click", () => {
     togglePause();

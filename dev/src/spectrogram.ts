@@ -1,89 +1,105 @@
-import { HTML, SVG } from "./imperative-html/elements-strict";
+import { HTML, SVG } from "./imperative-html/elements-strict.ts";
 import type { Synth } from "./synth.ts";
-import { forwardRealFourierTransform } from "./fft";
 
 export class Spectrogram {
     private readonly _editorWidth: number = 720;
     private readonly _editorHeight: number = 400;
-    private readonly _curve: SVGPathElement = SVG.path({ fill: "none", stroke: "rgb(255, 255, 255)", "stroke-width": 2, "pointer-events": "none" });
-    private readonly _text: SVGTextElement = SVG.text({x: "20", y: this._editorHeight - 20, fill: "white"}, "");
+    private readonly _curveL: SVGPathElement = SVG.path({ fill: "none", stroke: "rgb(255, 255, 255)", "stroke-width": 2, "pointer-events": "none" });
+    private readonly _curveR: SVGPathElement = SVG.path({ fill: "none", stroke: "rgb(85, 199, 216)", "stroke-width": 2, "pointer-events": "none" });
+    private readonly _text: SVGTextElement = SVG.text({ x: "20", y: this._editorHeight - 20, fill: "white" }, "");
 
     private readonly _svg: SVGSVGElement = SVG.svg({ style: `background-color:#072818; touch-action: none; cursor: crosshair;`, width: "100%", height: "100%", viewBox: "0 0 " + this._editorWidth + " " + this._editorHeight, preserveAspectRatio: "none" },
-        this._curve,
+        this._curveL,
+        this._curveR,
         this._text
     )
 
-    public readonly container: HTMLElement = HTML.div({ class: "spectrogram", style: "width: " + this._editorWidth + "px; height: " + this._editorHeight +"px;" }, this._svg);
+    public readonly container: HTMLElement = HTML.div({ class: "spectrogram", style: "width: " + this._editorWidth + "px; height: " + this._editorHeight + "px;" }, this._svg);
 
     private readonly synth;
-    private spectrum: Float32Array | null = null;
+    private spectrumLeft: Float32Array | null = null;
+    private spectrumRight: Float32Array | null = null;
 
-    constructor(synth: Synth) {
+    private maxFreq = 24000;
+    private readonly minFreq = 20;
+
+    constructor(synth: Synth, renderFrequencies: boolean = false) {
         this.synth = synth;
-        // this.container.addEventListener("mousemove", this._hover);
+        if (renderFrequencies) {
+            this.synth.updateFreq = (sampleRate) => this.maxFreq = sampleRate / 2;
+            this.container.addEventListener("mousemove", this._hover);
+            this.container.addEventListener("mouseleave", () => this._text.textContent = "");
+        }
     }
 
     public generateWave() {
-        if (this.synth.display) {
-            this.spectrum = this.synth.display;
-            this.renderWave();
-        }
+        this.spectrumLeft = this.synth.displayTimeLeft;
+        this.spectrumRight = this.synth.displayTimeRight;
+        this.renderWave();
     }
 
-    public generateSpectrum() { //TODO: fix logarithmic scale
-        if (this.synth.display) {
-            const hold: Float32Array = this.synth.display.slice();
-            forwardRealFourierTransform(hold);
-            this.spectrum = new Float32Array(hold.length >> 1);
-            for (let i: number = 0; i < hold.length >> 1; i++) {
-                this.spectrum[i] = 0.45 - Math.abs(hold[i] *= 1/Math.sqrt(hold.length));
-            }
-        }
+    public generateSpectrum() {
+        this.spectrumLeft = this.synth.displayFFTLeft.map((val) => (val + 80) / -160);
+        this.spectrumRight = this.synth.displayFFTRight.map((val) => (val + 80) / -160);
         this.renderSpectrum();
     }
 
-    // private _mouseX: number = 0;
-    // private _mouseY: number = 0;
+    private _mouseX: number = 0;
+    private _mouseY: number = 0;
 
-    // private _hover = (event: MouseEvent): void => {
-    //     if (this.container.offsetParent == null) return;
-    //     const boundingRect: ClientRect = this._svg.getBoundingClientRect();
-    //     this._mouseX = ((event.clientX || event.pageX) - boundingRect.left) * this._editorWidth / (boundingRect.right - boundingRect.left);
-    //     this._mouseY = ((event.clientY || event.pageY) - boundingRect.top) * this._editorHeight / (boundingRect.bottom - boundingRect.top);
-    // }
+    private _hover = (event: MouseEvent): void => {
+        if (this.container.offsetParent == null) {
+            this._text.textContent = "";
+            return;
+        }
+        const boundingRect: ClientRect = this._svg.getBoundingClientRect();
+        this._mouseX = ((event.clientX || event.pageX) - boundingRect.left) * this._editorWidth / (boundingRect.right - boundingRect.left);
+        this._mouseY = ((event.clientY || event.pageY) - boundingRect.top) * this._editorHeight / (boundingRect.bottom - boundingRect.top);
+        if (this._mouseX <= 0 || this._mouseY <= 0 || this._mouseX >= this._editorWidth || this._mouseY >= this._editorHeight) {
+            this._text.textContent = "";
+            return;
+        }
+
+        this._text.textContent = ((this.minFreq * Math.pow(this.maxFreq / this.minFreq, this._mouseX / this._editorWidth)) | 0 )+ "hz"
+    }
 
     private renderWave() {
-        if (!this.synth.isPlaying || this.spectrum == null) return;
-        let path: string = "M 0 " + prettyNumber(this.spectrum[0] * this._editorHeight + this._editorHeight / 2) + " ";
-        for (let index: number = 1; index < this.spectrum.length; index++) {
-            path += "L " + prettyNumber(index / this.spectrum.length * this._editorWidth) + " " + prettyNumber(this.spectrum[index] * this._editorHeight + this._editorHeight / 2);
+        if (!this.synth.isPlaying || this.spectrumLeft == null || this.spectrumRight == null) return;
+        let pathL: string = "M 0 " + prettyNumber(this.spectrumLeft[0] * this._editorHeight + this._editorHeight / 2) + " ";
+        let pathR: string = "M 0 " + prettyNumber(this.spectrumRight[0] * this._editorHeight + this._editorHeight / 2) + " ";
+        for (let index: number = 1; index < this.spectrumLeft.length; index++) {
+            pathL += "L " + prettyNumber(index / this.spectrumLeft.length * this._editorWidth) + " " + prettyNumber(this.spectrumLeft[index] * this._editorHeight + this._editorHeight / 2);
+            pathR += "L " + prettyNumber(index / this.spectrumRight.length * this._editorWidth) + " " + prettyNumber(this.spectrumRight[index] * this._editorHeight + this._editorHeight / 2);
         }
-        this._curve.setAttribute("d", path);
+        this._curveL.setAttribute("d", pathL);
+        this._curveR.setAttribute("d", pathR);
+    }
+
+    private logarithmicIndex(index: number, array: Float32Array): number {
+        const freq: number = this.minFreq * Math.pow(this.maxFreq / this.minFreq, index / this._editorWidth) / this.maxFreq * array.length;
+        const freqInt: number = freq | 0;
+        const freqRatio: number = freq - freqInt;
+        return array[freqInt] * (1 - freqRatio) + array[freqInt + 1] * freqRatio;
     }
 
     private renderSpectrum() {
-        if (!this.synth.isPlaying || this.spectrum == null) return;
-        let path: string = "M 0 " + prettyNumber(this.spectrum[0] * this._editorHeight + this._editorHeight / 2) + " ";
-        for (let index: number = 1; index < this.spectrum.length; index++) {
-            // const x: number = (Math.pow(2, index / this.spectrum.length) - 1);
-            // const x: number = (Math.log2(index / this.spectrum.length + 1));
-            const x: number = (Math.log10(index * 9 / this.spectrum.length + 1));
-            // const x: number = index / this.spectrum.length;
-            path += "L " + prettyNumber(x * this._editorWidth) + " " + prettyNumber(this.spectrum[index] * this._editorHeight + this._editorHeight / 2);
+        if (!this.synth.isPlaying || this.spectrumLeft == null || this.spectrumRight == null) return;
+        let pathL: string = "M 0 " + prettyNumber(this.spectrumLeft[0] * this._editorHeight + this._editorHeight / 2) + " ";
+        let pathR: string = "M 0 " + prettyNumber(this.spectrumRight[0] * this._editorHeight + this._editorHeight / 2) + " ";
+        for (let index: number = 1; index < this._editorWidth; index++) {
+            pathL += "L " + prettyNumber(index) + " " + prettyNumber(this.logarithmicIndex(index, this.spectrumLeft) * this._editorHeight + this._editorHeight / 2);
+            pathR += "L " + prettyNumber(index) + " " + prettyNumber(this.logarithmicIndex(index, this.spectrumRight) * this._editorHeight + this._editorHeight / 2);
         }
-        this._curve.setAttribute("d", path);
-        // if (isFinite(this._mouseX) && isFinite(this._mouseY)) {
-        //     const filterFreqReferenceHz = 4000;
-        //     const filterFreqReferenceSetting = 0;
-        //     const filterFreqStep = 1;
-        //     const freq: number = filterFreqReferenceHz * Math.pow(2.0, (this._mouseX / this._editorWidth - filterFreqReferenceSetting) * filterFreqStep); 
-        //     this._text.textContent = isFinite(freq) && !isNaN(freq) ? prettyNumber(freq) : "";
-        // } else {
-        //     this._text.textContent = "";
-        // }
+        this._curveL.setAttribute("d", pathL);
+        this._curveR.setAttribute("d", pathR);
     }
 }
 
 function prettyNumber(value: number): string {
-    return value.toFixed(2).replace(/\.?0*$/, "");
+    if (Number.isFinite(value)) {
+        const pretty: string = value.toFixed(2).replace(/\.?0*$/, "");
+        return pretty == "NaN" ? "0" : pretty;
+    } else {
+        return "0";
+    }
 }
